@@ -139,7 +139,7 @@ end
 
 class RecordApp < Qt::Application
   TIMER_INTERVAL = 1
-  MAX_RECORD_TIME = 500
+  MAX_RECORD_TIME = 600
   
   def initialize(argv)
     super argv
@@ -251,7 +251,7 @@ class RecordApp < Qt::Application
       @record_progress_bar.setValue @record_progress_bar.minimum
     end
 
-    if @word_model.exists? index
+    if @word_model.exists? @proxy_model.mapToSource(index)
       @play_button.setDisabled false
     else
       @play_button.setDisabled true
