@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>798</width>
+    <width>830</width>
     <height>512</height>
    </rect>
   </property>
@@ -73,10 +73,6 @@
            </widget>
           </item>
          </layout>
-         <zorder>recAllButton</zorder>
-         <zorder>recAllButton</zorder>
-         <zorder>recRecordedButton</zorder>
-         <zorder>recNAButton</zorder>
         </widget>
        </item>
        <item>
@@ -196,14 +192,14 @@
      <item>
       <layout class="QHBoxLayout" name="horizontalLayout">
        <item>
-        <widget class="QListView" name="wordListView">
+        <widget class="QTableView" name="wordTableView">
          <property name="font">
           <font>
            <family>Droid Sans Mono</family>
           </font>
          </property>
-         <property name="uniformItemSizes">
-          <bool>true</bool>
+         <property name="selectionBehavior">
+          <enum>QAbstractItemView::SelectRows</enum>
          </property>
         </widget>
        </item>
@@ -220,7 +216,9 @@
           <string>Play</string>
          </property>
          <property name="icon">
-          <iconset theme="media-playback-start"/>
+          <iconset theme="media-playback-start">
+           <normaloff/>
+          </iconset>
          </property>
         </widget>
        </item>
@@ -233,7 +231,9 @@
           <string>Record</string>
          </property>
          <property name="icon">
-          <iconset theme="media-record"/>
+          <iconset theme="media-record">
+           <normaloff/>
+          </iconset>
          </property>
         </widget>
        </item>
@@ -253,13 +253,6 @@
       </layout>
      </item>
     </layout>
-   </item>
-   <item row="1" column="0">
-    <widget class="QLabel" name="wordCountLabel">
-     <property name="text">
-      <string/>
-     </property>
-    </widget>
    </item>
   </layout>
  </widget>
