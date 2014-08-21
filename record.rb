@@ -165,6 +165,7 @@ class RecordApp < Qt::Application
     @word_table_view        = window.findChild Qt::TableView, "wordTableView"
     @action_play            = window.findChild Qt::Action, "actionPlay"
     @action_record          = window.findChild Qt::Action, "actionRecord"
+    @replay_check_box       = window.findChild Qt::CheckBox, "replayCheckBox"
     
     # Set record time to progress bar
     @record_progress_bar.setMaximum MAX_RECORD_TIME
@@ -269,6 +270,9 @@ class RecordApp < Qt::Application
     if @time.elapsed > MAX_RECORD_TIME
       @timer.stop
       system("kill #{@record_pid}")
+      if @replay_check_box.isChecked
+        onPlayBtnClicked()
+      end
     end
   end
   
