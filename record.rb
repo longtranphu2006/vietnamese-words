@@ -5,19 +5,15 @@ require 'Qt4'
 require 'qtuitools'
 
 class WordModel < Qt::AbstractTableModel
-  def initialize(parent = nil)
+  def initialize(recorder, parent = nil)
     super parent
+    @recorder = recorder
     @words = open("words.txt").read.split("\n")
     @blacklist = open("words-blacklist.txt").read.split("\n")
     @words.reject!{ |w| @blacklist.include? w }
     @diacritics = @words.map{|w| diacritic(w)}
     
-    # Init word directories
-    %w[wav wav/unmarked wav/acute wav/grave wav/hook wav/tilde wav/dot].each do |dir|
-      if !Dir.exists? dir
-        Dir.mkdir dir
-      end
-    end
+    self.recorder = recorder
   end
   
   def rowCount(parent)
@@ -39,7 +35,7 @@ class WordModel < Qt::AbstractTableModel
       when 2
         Qt::Variant.new @words[index.row]
       when 3
-        Qt::Variant.new "wav/#{@diacritics[index.row]}/#{@words[index.row]}.wav"
+        Qt::Variant.new "wav/#{recorder}/#{@diacritics[index.row]}/#{@words[index.row]}.wav"
       else
         Qt::Variant.new
       end
@@ -65,7 +61,22 @@ class WordModel < Qt::AbstractTableModel
   end
   
   def exists?(index)
-    File.exists? "wav/#{diacritic(original_data(index))}/#{original_data(index)}.wav"
+    File.exists? "wav/#{recorder}/#{diacritic(original_data(index))}/#{original_data(index)}.wav"
+  end
+  
+  def recorder
+    @recorder
+  end
+  
+  def recorder=(new_recorder)
+    @recorder = new_recorder
+    
+    # Init word directories
+    ["wav", "wav/#{recorder}/unmarked", "wav/#{recorder}/acute", "wav/#{recorder}/grave", "wav/#{recorder}/hook", "wav/#{recorder}/tilde", "wav/#{recorder}/dot"].each do |dir|
+      if !Dir.exists? dir
+        Dir.mkdir dir
+      end
+    end
   end
   
   def diacritic(word)
@@ -166,26 +177,42 @@ class RecordApp < Qt::Application
     @action_play            = window.findChild Qt::Action, "actionPlay"
     @action_record          = window.findChild Qt::Action, "actionRecord"
     @replay_check_box       = window.findChild Qt::CheckBox, "replayCheckBox"
+    @recorder_combo_box     = window.findChild Qt::ComboBox, "recorderComboBox"
+    @recorder_line_edit     = window.findChild Qt::LineEdit, "recorderLineEdit"
+    @add_recorder_button    = window.findChild Qt::PushButton, "addRecorderButton"
     
     # Set record time to progress bar
     @record_progress_bar.setMaximum MAX_RECORD_TIME
+    
+    # Populate recorders
+    Dir['wav/*'].reject{|node| !File.directory?(node)}.each do |dir|
+      @recorder_combo_box.addItem File.basename(dir)
+    end
     
     # Connect children signals
     connect(@play_button, SIGNAL('clicked()'), SLOT('onPlayBtnClicked()'))
     connect(@record_button, SIGNAL('clicked()'), SLOT('onRecordBtnClicked()'))
     connect(@reload_button, SIGNAL('clicked()'), SLOT('onReloadBtnClicked()'))
+    connect(@add_recorder_button, SIGNAL('clicked()'), SLOT('onAddRecorderButtonClicked()'))
     connect(@action_play, SIGNAL('triggered()'), SLOT('onPlayBtnClicked()'))
     connect(@action_record, SIGNAL('triggered()'), SLOT('onRecordBtnClicked()'))
     connect(@word_table_view, SIGNAL('clicked(QModelIndex)'), SLOT('onWordListClicked(QModelIndex)'))
     connect(@word_table_view, SIGNAL('doubleClicked(QModelIndex)'), SLOT('onWordListDoubleClicked(QModelIndex)'))
+    connect(@recorder_line_edit, SIGNAL('textChanged(QString)'), SLOT('onRecorderLineEditChanged(QString)'))
+    connect(@recorder_line_edit, SIGNAL('returnPressed()'), SLOT('onRecorderLineEditReturned()'))
+    connect(@recorder_combo_box, SIGNAL('currentIndexChanged(QString)'), SLOT('onRecorderComboBoxChanged(QString)'))
+    
+    # Setup table 
+    @proxy_model = WordFilterModel.new
+    @proxy_model.setDynamicSortFilter true
+    @word_table_view.setModel @proxy_model
     
     # Assign model
-    @word_model        = WordModel.new
-    @proxy_model = WordFilterModel.new
-    @proxy_model.setSourceModel @word_model
-    @proxy_model.setDynamicSortFilter true
+    if !@recorder_combo_box.currentText.nil?
+      @word_model  = WordModel.new @recorder_combo_box.currentText
+      @proxy_model.setSourceModel @word_model
+    end
     
-    @word_table_view.setModel @proxy_model
     @word_table_view.setColumnWidth 0, 150
     @word_table_view.horizontalHeader.setStretchLastSection true
     connect(@word_table_view, SIGNAL('customContextMenuRequested(QPoint)'), SLOT('customMenuRequested(QPoint)'))
@@ -215,13 +242,18 @@ class RecordApp < Qt::Application
   slots 'onReloadBtnClicked()'
   slots 'onWordListClicked(QModelIndex)'
   slots 'onWordListDoubleClicked(QModelIndex)'
+  slots 'onRecorderLineEditChanged(QString)'
+  slots 'onRecorderLineEditReturned()'
+  slots 'onAddRecorderButtonClicked()'
+  slots 'onRecorderComboBoxChanged(QString)'
   slots 'onTimerTimeout()'
   
   def onPlayBtnClicked()
     word =  @word_model.original_data(@proxy_model.mapToSource(@word_table_view.selectedIndexes()[0]))
     diacritic = @word_model.diacritic(word)
+    recorder = @word_model.recorder
     
-    Process.detach Process.spawn("aplay wav/#{diacritic}/#{word}.wav")
+    Process.detach Process.spawn("aplay wav/#{recorder}/#{diacritic}/#{word}.wav")
   end
   
   def onRecordBtnClicked()
@@ -232,17 +264,20 @@ class RecordApp < Qt::Application
     
     word =  @word_model.original_data(@proxy_model.mapToSource(@word_table_view.selectedIndexes()[0]))
     diacritic = @word_model.diacritic(word)
+    recorder = @word_model.recorder
 
-    @record_pid = Process.spawn("arecord --file-type=wav --channels=1 --rate=16000 --format=S16_LE wav/#{diacritic}/#{word}.wav --duration=#{MAX_RECORD_TIME}")
+    @record_pid = Process.spawn("arecord --file-type=wav --channels=1 --rate=16000 --format=S16_LE wav/#{recorder}/#{diacritic}/#{word}.wav --duration=#{MAX_RECORD_TIME}")
   end
   
   def onReloadBtnClicked()
-    # Repopulate list model
-    @word_model = WordModel.new
-    disableWindow
-    Thread.new do
-      @proxy_model.setSourceModel @word_model
-      enableWindow
+    unless @recorder_combo_box.currentText.nil?
+      # Repopulate list model
+      @word_model = WordModel.new @recorder_combo_box.currentText
+      disableWindow
+      Thread.new do
+        @proxy_model.setSourceModel @word_model
+        enableWindow
+      end
     end
   end
   
@@ -262,6 +297,50 @@ class RecordApp < Qt::Application
   def onWordListDoubleClicked(index)
     if @word_model.exists? @proxy_model.mapToSource(index)
       onPlayBtnClicked()
+    end
+  end
+  
+  def onRecorderLineEditChanged(text)
+    if text.match /^[^ \/]+$/
+      @add_recorder_button.setDisabled false
+    else
+      @add_recorder_button.setDisabled true
+    end
+  end
+  
+  def onRecorderLineEditReturned
+    if @recorder_line_edit.text.match /^[^ \/]+$/
+      onAddRecorderButtonClicked
+    end
+  end
+  
+  def onAddRecorderButtonClicked
+    begin
+      # Create new folder for recorder
+      Dir.mkdir "wav" unless Dir.exists?("wav")
+      Dir.mkdir "wav/#{@recorder_line_edit.text}"
+      
+      # Add new recorder into combobox
+      @recorder_combo_box.addItem @recorder_line_edit.text
+      
+      # Clear line edit
+      @recorder_line_edit.setText ""
+    rescue
+      # NOTE Nothing to handle here
+    end
+  end
+  
+  def onRecorderComboBoxChanged(recorder)
+    if @word_model.nil?
+      @word_model = WordModel.new recorder
+      @proxy_model.setSourceModel @word_model
+    else
+      @word_model.recorder = recorder
+      disableWindow
+      Thread.new do
+        @proxy_model.reset # Immediate update model
+        enableWindow
+      end
     end
   end
   
@@ -371,6 +450,7 @@ class RecordApp < Qt::Application
     @word_table_view.setDisabled true
     @dia_group_box.setDisabled true
     @rec_group_box.setDisabled true
+    @reload_button.setDisabled true
     Qt::Application.setOverrideCursor Qt::Cursor.new(Qt::WaitCursor)
   end
   
@@ -378,6 +458,7 @@ class RecordApp < Qt::Application
     @word_table_view.setDisabled false
     @dia_group_box.setDisabled false
     @rec_group_box.setDisabled false
+    @reload_button.setDisabled false
     Qt::Application.restoreOverrideCursor
   end
 end
