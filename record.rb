@@ -10,7 +10,7 @@ class WordModel < Qt::AbstractTableModel
     @words = open("words.txt").read.split("\n")
     @blacklist = open("words-blacklist.txt").read.split("\n")
     @words.reject!{ |w| @blacklist.include? w }
-    @diacritics = @words.map{|w| diacritic(w).capitalize}
+    @diacritics = @words.map{|w| diacritic(w)}
     
     # Init word directories
     %w[wav wav/unmarked wav/acute wav/grave wav/hook wav/tilde wav/dot].each do |dir|
@@ -29,18 +29,19 @@ class WordModel < Qt::AbstractTableModel
   end
   
   def data(index, role = Qt::DisplayRole)
-    if role == Qt::DisplayRole
+    case role 
+    when Qt::DisplayRole
       case index.column
       when 0
         Qt::Variant.new(exists?(index) ? tr("Recorded") : tr("N/A"))
       when 1
-        Qt::Variant.new @diacritics[index.row]
+        Qt::Variant.new @diacritics[index.row].capitalize
       when 2
         Qt::Variant.new @words[index.row]
       when 3
-        Qt::Variant.new ""
+        Qt::Variant.new "wav/#{@diacritics[index.row]}/#{@words[index.row]}.wav"
       else
-        Qt::Variant.new  "invalid column"
+        Qt::Variant.new
       end
     else
       Qt::Variant.new
@@ -54,7 +55,7 @@ class WordModel < Qt::AbstractTableModel
   def headerData(section, orientation, role = Qt::DisplayRole)
     if role == Qt::DisplayRole
       if orientation == Qt::Horizontal
-        Qt::Variant.new [tr("Availlability"), tr("Diacritic"), tr("Word"), tr("Action")][section]
+        Qt::Variant.new [tr("Availlability"), tr("Diacritic"), tr("Word"), tr("Path")][section]
       else
         super
       end
@@ -99,7 +100,7 @@ class WordFilterModel < Qt::SortFilterProxyModel
   
   def setFilter(filter)
     @filter = filter
-    invalidateFilter
+    reset
   end
   
   def filterAcceptsRow(source_row, source_parent_index)
@@ -110,15 +111,29 @@ class WordFilterModel < Qt::SortFilterProxyModel
     if filter[:record_availability] == 'all'
       availability_valid = true
     else
-      availability_regexp = Regexp.new("#{filter[:record_availability]}", Regexp::IGNORECASE)
-      availability_valid = !sourceModel.data(availability_idx).toString.match(availability_regexp).nil?
+#       availability_regexp = Regexp.new("#{filter[:record_availability]}", Regexp::IGNORECASE)
+#       availability_valid = !sourceModel.data(availability_idx).toString.match(availability_regexp).nil?
+      if filter[:record_availability] == 'recorded'
+        availability_valid = sourceModel.data(availability_idx).toString == tr("Recorded")
+      else
+        availability_valid = sourceModel.data(availability_idx).toString == tr("N/A")
+      end
     end
     
     # Filter by diacritic
-    diacritic_regexp = Regexp.new("^(#{filter[:diacritics].join("|")})$", Regexp::IGNORECASE)
-    diacritic_valid = !sourceModel.data(diacritic_idx).toString.match(diacritic_regexp).nil?
+#     diacritic_regexp = Regexp.new("^(#{filter[:diacritics].join("|")})$", Regexp::IGNORECASE)
+#     diacritic_valid = !sourceModel.data(diacritic_idx).toString.match(diacritic_regexp).nil?
+    diacritic_valid = (filter[:diacritics].map(&:capitalize).include?(sourceModel.data(diacritic_idx).toString))
     
     return availability_valid && diacritic_valid
+  end
+  
+  def headerData(section, orientation, role = Qt::DisplayRole)
+    if role == Qt::DisplayRole && orientation == Qt::Vertical
+      Qt::Variant.new section + 1
+    else
+      super
+    end
   end
 end
 
@@ -145,8 +160,11 @@ class RecordApp < Qt::Application
     # Extract children
     @play_button            = window.findChild Qt::PushButton, "playButton"
     @record_button          = window.findChild Qt::PushButton, "recordButton"
+    @reload_button          = window.findChild Qt::PushButton, "reloadButton"
     @record_progress_bar    = window.findChild Qt::ProgressBar, "recordProgressBar"
-    @word_table_view         = window.findChild Qt::TableView, "wordTableView"
+    @word_table_view        = window.findChild Qt::TableView, "wordTableView"
+    @action_play            = window.findChild Qt::Action, "actionPlay"
+    @action_record          = window.findChild Qt::Action, "actionRecord"
     
     # Set record time to progress bar
     @record_progress_bar.setMaximum MAX_RECORD_TIME
@@ -154,24 +172,30 @@ class RecordApp < Qt::Application
     # Connect children signals
     connect(@play_button, SIGNAL('clicked()'), SLOT('onPlayBtnClicked()'))
     connect(@record_button, SIGNAL('clicked()'), SLOT('onRecordBtnClicked()'))
+    connect(@reload_button, SIGNAL('clicked()'), SLOT('onReloadBtnClicked()'))
+    connect(@action_play, SIGNAL('triggered()'), SLOT('onPlayBtnClicked()'))
+    connect(@action_record, SIGNAL('triggered()'), SLOT('onRecordBtnClicked()'))
     connect(@word_table_view, SIGNAL('clicked(QModelIndex)'), SLOT('onWordListClicked(QModelIndex)'))
     connect(@word_table_view, SIGNAL('doubleClicked(QModelIndex)'), SLOT('onWordListDoubleClicked(QModelIndex)'))
     
     # Assign model
-    @word_list_model        = WordModel.new
+    @word_model        = WordModel.new
     @proxy_model = WordFilterModel.new
-    @proxy_model.setSourceModel @word_list_model
+    @proxy_model.setSourceModel @word_model
     @proxy_model.setDynamicSortFilter true
     
     @word_table_view.setModel @proxy_model
     @word_table_view.setColumnWidth 0, 150
     @word_table_view.horizontalHeader.setStretchLastSection true
+    connect(@word_table_view, SIGNAL('customContextMenuRequested(QPoint)'), SLOT('customMenuRequested(QPoint)'))
     
     # Filter groups
     @rec_button_group = window.findChild Qt::ButtonGroup, "recAvaillableGroup"
     connect(@rec_button_group, SIGNAL('buttonClicked(QAbstractButton*)'), SLOT('recGroupBtnClicked(QAbstractButton*)'))
     @dia_button_group = window.findChild Qt::ButtonGroup, "diacriticGroup"    
     connect(@dia_button_group, SIGNAL('buttonClicked(QAbstractButton*)'), SLOT('diaGroupBtnClicked(QAbstractButton*)'))
+    @dia_group_box = window.findChild Qt::GroupBox, "diaGroupBox"
+    @rec_group_box = window.findChild Qt::GroupBox, "recGroupBox"
     
     # Timer for progress bar
     @timer = Qt::Timer.new
@@ -187,13 +211,14 @@ class RecordApp < Qt::Application
   
   slots 'onPlayBtnClicked()'
   slots 'onRecordBtnClicked()'
+  slots 'onReloadBtnClicked()'
   slots 'onWordListClicked(QModelIndex)'
   slots 'onWordListDoubleClicked(QModelIndex)'
   slots 'onTimerTimeout()'
   
   def onPlayBtnClicked()
-    word =  @word_list_model.original_data(@proxy_model.mapToSource(@word_table_view.selectedIndexes()[0]))
-    diacritic = @word_list_model.diacritic(word)
+    word =  @word_model.original_data(@proxy_model.mapToSource(@word_table_view.selectedIndexes()[0]))
+    diacritic = @word_model.diacritic(word)
     
     Process.detach Process.spawn("aplay wav/#{diacritic}/#{word}.wav")
   end
@@ -204,16 +229,29 @@ class RecordApp < Qt::Application
     @time.start
     @timer.start
     
-    word =  @word_list_model.original_data(@proxy_model.mapToSource(@word_table_view.selectedIndexes()[0]))
-    diacritic = @word_list_model.diacritic(word)
+    word =  @word_model.original_data(@proxy_model.mapToSource(@word_table_view.selectedIndexes()[0]))
+    diacritic = @word_model.diacritic(word)
 
     @record_pid = Process.spawn("arecord --file-type=wav --channels=1 --rate=16000 --format=S16_LE wav/#{diacritic}/#{word}.wav --duration=#{MAX_RECORD_TIME}")
   end
   
+  def onReloadBtnClicked()
+    # Repopulate list model
+    @word_model = WordModel.new
+    disableWindow
+    Thread.new do
+      @proxy_model.setSourceModel @word_model
+      enableWindow
+    end
+  end
+  
   def onWordListClicked(index)
     @record_button.setDisabled(false)
+    if !@timer.isActive
+      @record_progress_bar.setValue @record_progress_bar.minimum
+    end
 
-    if @word_list_model.exists? index
+    if @word_model.exists? index
       @play_button.setDisabled false
     else
       @play_button.setDisabled true
@@ -221,10 +259,8 @@ class RecordApp < Qt::Application
   end
   
   def onWordListDoubleClicked(index)
-    if @word_list_model.exists? @proxy_model.mapToSource(index)
+    if @word_model.exists? @proxy_model.mapToSource(index)
       onPlayBtnClicked()
-    else
-      onRecordBtnClicked()
     end
   end
   
@@ -250,10 +286,10 @@ class RecordApp < Qt::Application
       @filter[:record_availability] = 'n\/a'
     end
     
-    @word_table_view.setDisabled true
+    disableWindow
     Thread.new do
       @proxy_model.setFilter @filter
-      @word_table_view.setDisabled false
+      enableWindow
     end
   end
   
@@ -298,11 +334,47 @@ class RecordApp < Qt::Application
       end
     end
     
-    @word_table_view.setDisabled true
+    disableWindow
     Thread.new do
       @proxy_model.setFilter @filter
-      @word_table_view.setDisabled false
+      enableWindow
     end
+  end
+  
+  slots 'customMenuRequested(QPoint)'
+  def customMenuRequested(position)
+    # Proxy to click event
+    word_idx = @word_table_view.indexAt(position)
+    onWordListClicked(word_idx)
+    
+    @menu ||= begin
+      menu = Qt::Menu.new
+      menu.addAction @action_play
+      menu.addAction @action_record
+      menu
+    end
+    
+    if @word_model.exists? @proxy_model.mapToSource(word_idx)
+      @action_play.setDisabled false
+    else
+      @action_play.setDisabled true
+    end
+    @menu.exec(Qt::Cursor.pos)
+  end
+  
+  private
+  def disableWindow
+    @word_table_view.setDisabled true
+    @dia_group_box.setDisabled true
+    @rec_group_box.setDisabled true
+    Qt::Application.setOverrideCursor Qt::Cursor.new(Qt::WaitCursor)
+  end
+  
+  def enableWindow
+    @word_table_view.setDisabled false
+    @dia_group_box.setDisabled false
+    @rec_group_box.setDisabled false
+    Qt::Application.restoreOverrideCursor
   end
 end
 

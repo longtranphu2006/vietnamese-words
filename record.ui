@@ -25,7 +25,10 @@
         <number>0</number>
        </property>
        <item>
-        <widget class="QGroupBox" name="groupBox">
+        <widget class="QGroupBox" name="recGroupBox">
+         <property name="enabled">
+          <bool>true</bool>
+         </property>
          <property name="title">
           <string>Record Availability</string>
          </property>
@@ -83,7 +86,7 @@
         </widget>
        </item>
        <item>
-        <widget class="QGroupBox" name="groupBox_2">
+        <widget class="QGroupBox" name="diaGroupBox">
          <property name="title">
           <string>Diacritic</string>
          </property>
@@ -198,8 +201,11 @@
            <family>Droid Sans Mono</family>
           </font>
          </property>
+         <property name="contextMenuPolicy">
+          <enum>Qt::CustomContextMenu</enum>
+         </property>
          <property name="selectionBehavior">
-          <enum>QAbstractItemView::SelectRows</enum>
+          <enum>QAbstractItemView::SelectItems</enum>
          </property>
         </widget>
        </item>
@@ -239,14 +245,33 @@
        </item>
        <item>
         <widget class="QProgressBar" name="recordProgressBar">
+         <property name="enabled">
+          <bool>true</bool>
+         </property>
          <property name="minimum">
           <number>0</number>
          </property>
          <property name="maximum">
-          <number>1500</number>
+          <number>1000</number>
          </property>
          <property name="value">
           <number>0</number>
+         </property>
+         <property name="textVisible">
+          <bool>true</bool>
+         </property>
+         <property name="format">
+          <string>%v/%mms</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QPushButton" name="reloadButton">
+         <property name="text">
+          <string>Reload</string>
+         </property>
+         <property name="icon">
+          <iconset theme="view-refresh"/>
          </property>
         </widget>
        </item>
@@ -255,6 +280,22 @@
     </layout>
    </item>
   </layout>
+  <action name="actionPlay">
+   <property name="icon">
+    <iconset theme="media-playback-start"/>
+   </property>
+   <property name="text">
+    <string>Play</string>
+   </property>
+  </action>
+  <action name="actionRecord">
+   <property name="icon">
+    <iconset theme="media-record"/>
+   </property>
+   <property name="text">
+    <string>Record</string>
+   </property>
+  </action>
  </widget>
  <resources/>
  <connections/>
