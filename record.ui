@@ -156,9 +156,9 @@
            </widget>
           </item>
           <item>
-           <widget class="QPushButton" name="diaDotButton">
+           <widget class="QPushButton" name="diaTildeButton">
             <property name="text">
-             <string>Dot</string>
+             <string>Tilde</string>
             </property>
             <property name="checkable">
              <bool>true</bool>
@@ -172,9 +172,9 @@
            </widget>
           </item>
           <item>
-           <widget class="QPushButton" name="diaTildeButton">
+           <widget class="QPushButton" name="diaDotButton">
             <property name="text">
-             <string>Tilde</string>
+             <string>Dot</string>
             </property>
             <property name="checkable">
              <bool>true</bool>
@@ -196,11 +196,6 @@
       <layout class="QHBoxLayout" name="horizontalLayout">
        <item>
         <widget class="QTableView" name="wordTableView">
-         <property name="font">
-          <font>
-           <family>Droid Sans Mono</family>
-          </font>
-         </property>
          <property name="contextMenuPolicy">
           <enum>Qt::CustomContextMenu</enum>
          </property>
@@ -318,7 +313,9 @@
         <string>Add Recorder</string>
        </property>
        <property name="icon">
-        <iconset theme="list-add-user"/>
+        <iconset theme="list-add-user">
+         <normaloff/>
+        </iconset>
        </property>
       </widget>
      </item>
