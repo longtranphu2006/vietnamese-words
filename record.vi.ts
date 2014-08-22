@@ -56,12 +56,12 @@
     <message>
         <location filename="record.ui" line="161"/>
         <source>Dot</source>
-        <translation>Ngã</translation>
+        <translation>Nặng</translation>
     </message>
     <message>
         <location filename="record.ui" line="177"/>
         <source>Tilde</source>
-        <translation>Nặng</translation>
+        <translation>Ngã</translation>
     </message>
     <message>
         <location filename="record.ui" line="222"/>

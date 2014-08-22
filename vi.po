@@ -2,7 +2,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2014-08-22 10:09+0700\n"
+"POT-Creation-Date: 2014-08-22 17:39+0700\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -53,11 +53,11 @@ msgstr "Hỏi"
 
 #: mainWidget#11
 msgid "Dot"
-msgstr "Ngã"
+msgstr "Nặng"
 
 #: mainWidget#12
 msgid "Tilde"
-msgstr "Nặng"
+msgstr "Ngã"
 
 #: mainWidget#13
 msgid "Play"
