@@ -44,51 +44,53 @@ File.write('words.txt', words.uniq!.join("\n"))
 system("sort words.txt -o words.txt")
 system("wc -l words.txt")
 
-# Categorize words
-unmarkeds = []
-acutes = []
-graves = []
-hooks = []
-tildes = []
-dots = []
+if ENV['CATEGORIZE_WORDS']
+  # Categorize words
+  unmarkeds = []
+  acutes = []
+  graves = []
+  hooks = []
+  tildes = []
+  dots = []
 
-words.each do |word|
-  case word
-  when /[áắấéếíóốớúứý]/
-    acutes << word
-  when /[àằầèềìòồờùừỳ]/
-    graves << word
-  when /[ảẳẩẻểỉỏổởủửỷ]/
-    hooks << word
-  when /[ãẵẫẽễĩõỗỡũữỹ]/
-    tildes << word
-  when /[ạặậẹệịọộợụựỵ]/
-    dots << word
-  else
-    unmarkeds << word
+  words.each do |word|
+    case word
+    when /[áắấéếíóốớúứý]/
+      acutes << word
+    when /[àằầèềìòồờùừỳ]/
+      graves << word
+    when /[ảẳẩẻểỉỏổởủửỷ]/
+      hooks << word
+    when /[ãẵẫẽễĩõỗỡũữỹ]/
+      tildes << word
+    when /[ạặậẹệịọộợụựỵ]/
+      dots << word
+    else
+      unmarkeds << word
+    end
   end
+
+  File.write('words-unmarkeds.txt', unmarkeds.join("\n"))
+  system("sort words-unmarkeds.txt -o words-unmarkeds.txt")
+  system("wc -l words-unmarkeds.txt")
+
+  File.write('words-acutes.txt', acutes.join("\n"))
+  system("sort words-acutes.txt -o words-acutes.txt")
+  system("wc -l words-acutes.txt")
+
+  File.write('words-graves.txt', graves.join("\n"))
+  system("sort words-graves.txt -o words-graves.txt")
+  system("wc -l words-graves.txt")
+
+  File.write('words-hooks.txt', hooks.join("\n"))
+  system("sort words-hooks.txt -o words-hooks.txt")
+  system("wc -l words-hooks.txt")
+
+  File.write('words-tildes.txt', tildes.join("\n"))
+  system("sort words-tildes.txt -o words-tildes.txt")
+  system("wc -l words-tildes.txt")
+
+  File.write('words-dots.txt', dots.join("\n"))
+  system("sort words-dots.txt -o words-dots.txt")
+  system("wc -l words-dots.txt")
 end
-
-File.write('words-unmarkeds.txt', unmarkeds.join("\n"))
-system("sort words-unmarkeds.txt -o words-unmarkeds.txt")
-system("wc -l words-unmarkeds.txt")
-
-File.write('words-acutes.txt', acutes.join("\n"))
-system("sort words-acutes.txt -o words-acutes.txt")
-system("wc -l words-acutes.txt")
-
-File.write('words-graves.txt', graves.join("\n"))
-system("sort words-graves.txt -o words-graves.txt")
-system("wc -l words-graves.txt")
-
-File.write('words-hooks.txt', hooks.join("\n"))
-system("sort words-hooks.txt -o words-hooks.txt")
-system("wc -l words-hooks.txt")
-
-File.write('words-tildes.txt', tildes.join("\n"))
-system("sort words-tildes.txt -o words-tildes.txt")
-system("wc -l words-tildes.txt")
-
-File.write('words-dots.txt', dots.join("\n"))
-system("sort words-dots.txt -o words-dots.txt")
-system("wc -l words-dots.txt")
