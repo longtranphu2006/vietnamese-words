@@ -1,0 +1,100 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2014-08-22 10:09+0700\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"X-Generator: Translate Toolkit 1.10.0\n"
+
+#: mainWidget#1
+msgid "Record Vietnamese Words"
+msgstr "Thu âm từ đơn trong Tiếng Việt"
+
+#: mainWidget#2
+msgid "Record Availability"
+msgstr "Tình trạng bản thu"
+
+#: mainWidget#3
+msgid "All"
+msgstr "Tất cả"
+
+#: mainWidget#4
+msgid "Recorded"
+msgstr "Đã thu"
+
+#: mainWidget#5
+msgid "N/A"
+msgstr "Chưa thu"
+
+#: mainWidget#6
+msgid "Diacritic"
+msgstr "Dấu"
+
+#: mainWidget#7
+msgid "Unmarked"
+msgstr "Không dấu"
+
+#: mainWidget#8
+msgid "Acute"
+msgstr "Sắc"
+
+#: mainWidget#9
+msgid "Grave"
+msgstr "Huyền"
+
+#: mainWidget#10
+msgid "Hook"
+msgstr "Hỏi"
+
+#: mainWidget#11
+msgid "Dot"
+msgstr "Ngã"
+
+#: mainWidget#12
+msgid "Tilde"
+msgstr "Nặng"
+
+#: mainWidget#13
+msgid "Play"
+msgstr "Phát"
+
+#: mainWidget#14
+msgid "Record"
+msgstr "Thu"
+
+#: mainWidget#15
+msgid "%v/%mms"
+msgstr ""
+
+#: mainWidget#16
+msgid "Play after record"
+msgstr "Phát sau khi thu"
+
+#: mainWidget#17
+msgid "Reload"
+msgstr "Tải lại"
+
+#: mainWidget#18
+msgid "Recorder"
+msgstr "Người thu"
+
+#: mainWidget#19
+msgid "Add Recorder"
+msgstr "Thêm người thu"
+
+#: mainWidget#20
+msgid "Availability"
+msgstr "Tình trạng"
+
+#: mainWidget#21
+msgid "Word"
+msgstr "Từ"
+
+#: mainWidget#22
+msgid "Path"
+msgstr "Đường dẫn"
