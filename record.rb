@@ -12,14 +12,17 @@ I18n.locale = :vi
 
 class WordModel < Qt::AbstractTableModel
   def initialize(recorder, parent = nil)
-    super parent
-    @recorder = recorder
+    super parent    
+    
+    populateWords
+    self.recorder = recorder
+  end
+  
+  def populateWords
     @words = open("words.txt").read.split("\n")
     @blacklist = open("words-blacklist.txt").read.split("\n")
     @words.reject!{ |w| @blacklist.include? w }
     @diacritics = @words.map{|w| diacritic(w)}
-
-    self.recorder = recorder
   end
 
   def rowCount(parent)
@@ -272,14 +275,11 @@ class RecordApp < Qt::Application
   end
 
   def onReloadBtnClicked()
-    unless @recorder_combo_box.currentText.nil?
+    disableWindow
+    Thread.new do
       # Repopulate list model
-      @word_model = WordModel.new @recorder_combo_box.currentText
-      disableWindow
-      Thread.new do
-        @proxy_model.setSourceModel @word_model
-        enableWindow
-      end
+      @word_model.populateWords
+      enableWindow
     end
   end
 
