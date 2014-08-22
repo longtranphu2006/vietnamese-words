@@ -279,6 +279,7 @@ class RecordApp < Qt::Application
     Thread.new do
       # Repopulate list model
       @word_model.populateWords
+      @proxy_model.reset
       enableWindow
     end
   end
