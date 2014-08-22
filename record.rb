@@ -155,6 +155,9 @@ class RecordApp < Qt::Application
 
   def initialize(argv)
     super argv
+    
+    # Set icon
+    self.setWindowIcon Qt::Icon.fromTheme("media-record")
 
     # Load translation
     translator = Qt::Translator.new
