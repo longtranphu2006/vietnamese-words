@@ -4,11 +4,12 @@
 require 'Qt4'
 require 'qtuitools'
 require 'i18n'
-# require 'i18n/backend/gettext'
+require 'thread'
+
 I18n.load_path += Dir["./*.po"]
 I18n.enforce_available_locales = true
 I18n::Backend::Simple.include(I18n::Backend::Gettext)
-I18n.locale = :vi
+I18n.default_locale = :vi
 
 class WordModel < Qt::AbstractTableModel
   def initialize(recorder, parent = nil)
@@ -243,6 +244,8 @@ class RecordApp < Qt::Application
 
     # Display window
     window.show
+    
+    @filter_semaphore = Mutex.new
   end
 
   slots 'onPlayBtnClicked()'
@@ -365,67 +368,50 @@ class RecordApp < Qt::Application
   slots 'diaGroupBtnClicked(QAbstractButton*)'
 
   def recGroupBtnClicked(button)
-    @filter = @proxy_model.filter
-
-    case button.text.force_encoding('utf-8')
-    when I18n.t("All")
-      @filter[:record_availability] = 'all'
-    else
-      @filter[:record_availability] = button.text.force_encoding('utf-8')
-    end
-    puts @filter[:record_availability].inspect
-
     disableWindow
     Thread.new do
-      @proxy_model.setFilter @filter
+      @filter_semaphore.synchronize do
+        @filter = @proxy_model.filter
+        
+        if button.text.force_encoding('utf-8') == I18n.t("All")
+          @filter[:record_availability] = 'all'
+        else
+          @filter[:record_availability] = button.text.force_encoding('utf-8')
+        end
+        
+        @proxy_model.setFilter @filter
+      end
+      
       enableWindow
     end
   end
 
   def diaGroupBtnClicked(button)
-    @filter = @proxy_model.filter
-    case button.text.force_encoding('utf-8')
-    when I18n.t("Unmarked")
-      if button.checked
-        @filter[:diacritics] << 'unmarked'
-      else
-        @filter[:diacritics].delete 'unmarked'
-      end
-    when I18n.t("Acute")
-      if button.checked
-        @filter[:diacritics] << 'acute'
-      else
-        @filter[:diacritics].delete 'acute'
-      end
-    when I18n.t("Grave")
-      if button.checked
-        @filter[:diacritics] << 'grave'
-      else
-        @filter[:diacritics].delete 'grave'
-      end
-    when I18n.t("Hook")
-      if button.checked
-        @filter[:diacritics] << 'hook'
-      else
-        @filter[:diacritics].delete 'hook'
-      end
-    when I18n.t("Tilde")
-      if button.checked
-        @filter[:diacritics] << 'tilde'
-      else
-        @filter[:diacritics].delete 'tilde'
-      end
-    when I18n.t("Dot")
-      if button.checked
-        @filter[:diacritics] << 'dot'
-      else
-        @filter[:diacritics].delete 'dot'
-      end
-    end
+    @diacritic_map ||= {
+      I18n.t("Unmarked") => 'unmarked',
+      I18n.t("Acute") => 'acute',
+      I18n.t("Grave") => 'grave',
+      I18n.t("Hook") => 'hook',
+      I18n.t("Tilde") => 'tilde',
+      I18n.t("Dot") => 'dot'
+    }
 
     disableWindow
     Thread.new do
-      @proxy_model.setFilter @filter
+      @filter_semaphore.synchronize do
+        @filter = @proxy_model.filter
+        
+        unless @diacritic_map[button.text.force_encoding('utf-8')].nil?
+          if button.checked
+            @filter[:diacritics] << @diacritic_map[button.text.force_encoding('utf-8')]
+          else
+            @filter[:diacritics].delete @diacritic_map[button.text.force_encoding('utf-8')]
+          end
+        end
+
+        @proxy_model.setFilter @filter
+      end
+      
       enableWindow
     end
   end
