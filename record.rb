@@ -211,20 +211,28 @@ class RecordApp < Qt::Application
     connect(@recorder_line_edit, SIGNAL('returnPressed()'), SLOT('onRecorderLineEditReturned()'))
     connect(@recorder_combo_box, SIGNAL('currentIndexChanged(QString)'), SLOT('onRecorderComboBoxChanged(QString)'))
 
-    # Setup table
+    # Setup model
     @proxy_model = WordFilterModel.new
     @proxy_model.setDynamicSortFilter true
-    @word_table_view.setModel @proxy_model
-
-    # Assign model
     if !@recorder_combo_box.currentText.nil?
       @word_model  = WordModel.new @recorder_combo_box.currentText
       @proxy_model.setSourceModel @word_model
     end
 
+    # Set up
+    @word_table_view.setModel @proxy_model
     @word_table_view.setColumnWidth 0, 150
     @word_table_view.horizontalHeader.setStretchLastSection true
     connect(@word_table_view, SIGNAL('customContextMenuRequested(QPoint)'), SLOT('customMenuRequested(QPoint)'))
+    connect(@word_table_view.selectionModel, SIGNAL('currentRowChanged(QModelIndex, QModelIndex)'), SLOT('onCurrentRowChanged(QModelIndex, QModelIndex)'))
+    
+    # Shortcut for table view
+    @play_shortcut = Qt::Shortcut.new(Qt::KeySequence.new(Qt::Key_P), @word_table_view)
+    connect(@play_shortcut, SIGNAL('activated()'), SLOT('onPlayBtnClicked()'));
+    @play_shortcut_2 = Qt::Shortcut.new(Qt::KeySequence.new(Qt::Key_Return), @word_table_view)
+    connect(@play_shortcut_2, SIGNAL('activated()'), SLOT('onPlayBtnClicked()'));
+    @record_shortcut = Qt::Shortcut.new(Qt::KeySequence.new(Qt::Key_R), @word_table_view)
+    connect(@record_shortcut, SIGNAL('activated()'), SLOT('onRecordBtnClicked()'));
 
     # Filter groups
     @rec_button_group = window.findChild Qt::ButtonGroup, "recAvaillableGroup"
@@ -252,6 +260,7 @@ class RecordApp < Qt::Application
   slots 'onRecordBtnClicked()'
   slots 'onReloadBtnClicked()'
   slots 'onWordListClicked(QModelIndex)'
+  slots 'onCurrentRowChanged(QModelIndex, QModelIndex)'
   slots 'onWordListDoubleClicked(QModelIndex)'
   slots 'onRecorderLineEditChanged(QString)'
   slots 'onRecorderLineEditReturned()'
@@ -270,14 +279,15 @@ class RecordApp < Qt::Application
   def onRecordBtnClicked()
     @record_progress_bar.reset
     @time ||= Qt::Time.currentTime
-    @time.start
-    @timer.start
 
     word =  @word_model.original_data(@proxy_model.mapToSource(@word_table_view.selectedIndexes()[0]))
     diacritic = @word_model.diacritic(word)
     recorder = @word_model.recorder
-
-    @record_pid = Process.spawn("arecord --file-type=wav --channels=1 --rate=16000 --format=S16_LE wav/#{recorder}/#{diacritic}/#{word}.wav --duration=#{MAX_RECORD_TIME}")
+    
+    sleep 0.1
+    @record_pid = Process.spawn("arecord --file-type=wav --channels=1 --rate=16000 --format=S16_LE wav/#{recorder}/#{diacritic}/#{word}.wav")
+    @time.start
+    @timer.start
   end
 
   def onReloadBtnClicked()
@@ -297,6 +307,19 @@ class RecordApp < Qt::Application
     end
 
     if @word_model.exists? @proxy_model.mapToSource(index)
+      @play_button.setDisabled false
+    else
+      @play_button.setDisabled true
+    end
+  end
+  
+  def onCurrentRowChanged(current_index, previous_index)
+    @record_button.setDisabled false
+    if !@timer.isActive
+      @record_progress_bar.setValue @record_progress_bar.minimum
+    end
+
+    if @word_model.exists? @proxy_model.mapToSource(current_index)
       @play_button.setDisabled false
     else
       @play_button.setDisabled true
