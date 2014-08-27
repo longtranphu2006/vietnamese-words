@@ -152,7 +152,7 @@ end
 
 class RecordApp < Qt::Application
   TIMER_INTERVAL = 1
-  MAX_RECORD_TIME = 600
+  MAX_RECORD_TIME = 700
 
   def initialize(argv)
     super argv
